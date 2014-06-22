@@ -48,7 +48,7 @@ namespace android_audio_legacy {
 #define SONIFICATION_RESPECTFUL_AFTER_MUSIC_DELAY 5000
 // Time in milliseconds during witch some streams are muted while the audio path
 // is switched
-#define MUTE_TIME_MS 2000
+#define MUTE_TIME_MS 500
 
 #define NUM_TEST_OUTPUTS 5
 
@@ -360,7 +360,11 @@ protected:
 
         // change the route of the specified output. Returns the number of ms we have slept to
         // allow new routing to take effect in certain cases.
+#ifdef QCOM_HARDWARE
         virtual uint32_t setOutputDevice(audio_io_handle_t output,
+#else
+        uint32_t setOutputDevice(audio_io_handle_t output,
+#endif
                              audio_devices_t device,
                              bool force = false,
                              int delayMs = 0);
@@ -381,7 +385,11 @@ protected:
         virtual float computeVolume(int stream, int index, audio_io_handle_t output, audio_devices_t device);
 
         // check that volume change is permitted, compute and send new volume to audio hardware
+#ifdef QCOM_HARDWARE
         virtual status_t checkAndSetVolume(int stream, int index, audio_io_handle_t output, audio_devices_t device, int delayMs = 0, bool force = false);
+#else
+        status_t checkAndSetVolume(int stream, int index, audio_io_handle_t output, audio_devices_t device, int delayMs = 0, bool force = false);
+#endif
 
         // apply all stream volumes to the specified output and device
         void applyStreamVolumes(audio_io_handle_t output, audio_devices_t device, int delayMs = 0, bool force = false);
@@ -394,7 +402,11 @@ protected:
                              audio_devices_t device = (audio_devices_t)0);
 
         // Mute or unmute the stream on the specified output
+#ifdef QCOM_HARDWARE
         virtual void setStreamMute(int stream,
+#else
+        void setStreamMute(int stream,
+#endif
                            bool on,
                            audio_io_handle_t output,
                            int delayMs = 0,
@@ -452,6 +464,16 @@ protected:
 
         void updateDevicesAndOutputs();
 
+        // true if current platform requires a specific output to be opened for this particular
+        // set of parameters. This function is called by getOutput() and is implemented by platform
+        // specific audio policy manager.
+        virtual bool needsDirectOuput(audio_stream_type_t stream,
+                                      uint32_t samplingRate,
+                                      audio_format_t format,
+                                      audio_channel_mask_t channelMask,
+                                      audio_output_flags_t flags,
+                                      audio_devices_t device);
+
         virtual uint32_t getMaxEffectsCpuLoad();
         virtual uint32_t getMaxEffectsMemory();
 #ifdef AUDIO_POLICY_TEST
@@ -487,7 +509,11 @@ protected:
                                    uint32_t samplingRate,
                                    uint32_t format,
                                    uint32_t channelMask);
+#ifdef QCOM_HARDWARE
+        virtual IOProfile *getProfileForDirectOutput(audio_devices_t device,
+#else
         IOProfile *getProfileForDirectOutput(audio_devices_t device,
+#endif
                                                        uint32_t samplingRate,
                                                        uint32_t format,
                                                        uint32_t channelMask,
